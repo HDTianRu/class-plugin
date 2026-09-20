@@ -28,12 +28,12 @@ export default class Class extends plugin {
         reg: '^#?(明日|明天)课表$',
         fnc: 'tomorrow'
       }, {
-        /* 绑定：#绑定课表 学号 / #绑定 学号 */
-        reg: '^#?(绑定|bind)(课表|教务)?\\s*(\\S*)$',
+        /* 绑定：#bind 学号 */
+        reg: '^#?bind\\s*(\\S*)$',
         fnc: 'bind'
       }, {
-        /* 解绑：#解绑课表 / 主人可 #解绑课表 @某人 */
-        reg: '^#?(unbind|解绑|取消绑定)(课表|教务)?$',
+        /* 解绑：#unbind / 主人可 #unbind @某人 */
+        reg: '^#?unbind$',
         fnc: 'unbind'
       }]
     })
@@ -113,9 +113,9 @@ export default class Class extends plugin {
 
   /* ---------- 绑定 ---------- */
   async bind(e) {
-    let match = /^#?(绑定|bind)(课表|教务)?\s*(\S*)$/.exec(e.msg.trim())
-    let id = (match?.[2] || '').replace(/^[#＃]/, '')
-    if (!id) return e.reply('格式：#绑定课表 学号', true)
+    let match = /^#?bind\s*(\S*)$/.exec(e.msg.trim())
+    let id = (match?.[1] || '').replace(/^[#＃]/, '')
+    if (!id) return e.reply('格式：#bind 学号', true)
 
     /* 主人可通过 @ 帮他人绑定 */
     let qq = (e.isMaster && e.at) ? e.at : e.user_id
@@ -153,7 +153,7 @@ export default class Class extends plugin {
 
   /* 取课表，未绑定或失败时给出提示并返回 null */
   async getSchedule(e, force = false) {
-    let qq = e.user_id
+    let qq = e.at || e.user_id
     if (!this.lock(qq)) return null
 
     let id = classApi.getID(qq)
