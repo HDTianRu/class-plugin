@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>课程表</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      width: 1080px;
+      font-family: "Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", sans-serif;
+      background: #eef1f7;
+      padding: 24px;
+      color: #2b3245;
+    }
+
+    .board {
+      background: #fff;
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(38, 50, 90, .12);
+    }
+
+    /* 头部 */
+    .head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 26px;
+      background: linear-gradient(120deg, #4a6cf7, #7b5bf0 60%, #a45bf0);
+      color: #fff;
+    }
+
+    .head .title {
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: 2px;
+    }
+
+    .head .tips {
+      font-size: 13px;
+      opacity: .9;
+    }
+
+    /* 主体网格：第 1 列为节次，后 7 列为周日 ~ 周六 */
+    .timetable {
+      display: grid;
+      grid-template-columns: 78px repeat(7, 1fr);
+      grid-template-rows: 52px;
+      grid-auto-rows: 76px;
+      gap: 6px;
+      padding: 14px;
+    }
+
+    .corner,
+    .day {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      font-weight: 700;
+      font-size: 15px;
+      border-radius: 10px;
+      background: #f2f4fa;
+      color: #4a5578;
+    }
+
+    .day .date {
+      font-size: 11px;
+      font-weight: 400;
+      color: #9aa2bb;
+    }
+
+    .day.weekend {
+      background: #fdf1f3;
+      color: #c2456a;
+    }
+
+    .day.weekend .date {
+      color: #d79aae;
+    }
+
+    .day.today {
+      background: #4a6cf7;
+      color: #fff;
+    }
+
+    .day.today .date {
+      color: #d8e0ff;
+    }
+
+    .period {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      border-radius: 10px;
+      background: #f7f8fc;
+    }
+
+    .period .no {
+      font-size: 15px;
+      font-weight: 700;
+      color: #59637f;
+    }
+
+    .period .time {
+      font-size: 10px;
+      line-height: 1.25;
+      text-align: center;
+      color: #9aa2bb;
+    }
+
+    /* 课程卡片 */
+    .course {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 4px;
+      padding: 8px 10px;
+      margin: 1px;
+      border-radius: 10px;
+      border-left: 4px solid var(--c);
+      background: var(--bg);
+      overflow: hidden;
+    }
+
+    .course .name {
+      font-size: 13.5px;
+      font-weight: 700;
+      line-height: 1.3;
+      color: var(--c);
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .course .meta {
+      font-size: 11.5px;
+      line-height: 1.35;
+      color: #6b748c;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .course .tag {
+      align-self: flex-start;
+      font-size: 10px;
+      padding: 1px 6px;
+      border-radius: 20px;
+      background: #fff;
+      color: var(--c);
+      border: 1px solid var(--c);
+      opacity: .85;
+    }
+
+    .empty {
+      grid-column: 2 / -1;
+      grid-row: 2;
+      padding: 60px 0;
+      text-align: center;
+      color: #9aa2bb;
+      font-size: 16px;
+    }
+
+    /* 8 套配色 */
+    .c0 { --c: #4a6cf7; --bg: #eef2ff; }
+    .c1 { --c: #17a673; --bg: #e9f8f2; }
+    .c2 { --c: #e07a1f; --bg: #fdf3e7; }
+    .c3 { --c: #c2456a; --bg: #fdeef2; }
+    .c4 { --c: #7b5bf0; --bg: #f1ecfe; }
+    .c5 { --c: #0f9bb8; --bg: #e8f7fa; }
+    .c6 { --c: #8a7d1f; --bg: #faf7e3; }
+    .c7 { --c: #5b6b8c; --bg: #eef1f7; }
+  </style>
+</head>
+
+<body>
+  <div class="board">
+    <div class="head">
+      <div class="title">课程表</div>
+      <div class="tips">
+        {{if updateTime}}更新于 {{updateTime}} · {{/if}}共 {{total}} 门课
+      </div>
+    </div>
+
+    <div class="timetable">
+      <div class="corner">节次</div>
+      {{each days day}}
+      <div class="day {{day.Weekend ? 'weekend' : ''}} {{day.Today ? 'today' : ''}}">
+        <span>{{day.name}}</span>
+        {{if day.date}}<span class="date">{{day.date}}</span>{{/if}}
+      </div>
+      {{/each}}
+
+      {{each periods p}}
+      <div class="period">
+        <span class="no">{{p.no}}</span>
+        <span class="time">{{p.time}}</span>
+      </div>
+      {{/each}}
+
+      {{if total === 0}}
+      <div class="empty">本周暂无课程</div>
+      {{/if}}
+
+      {{each courses item}}
+      <div class="course c{{item.Color}}"
+        style="grid-column: {{item.Col}}; grid-row: {{item.RowStart}} / {{item.RowEnd}};">
+        <span class="name">{{item.CourseName}}</span>
+        <span class="meta">{{item.TeachName}} · {{item.ClassRoom}}</span>
+        <span class="meta">{{item.TimeText}}</span>
+        {{if item.Tag}}
+        <span class="tag">{{item.Tag}}</span>
+        {{/if}}
+      </div>
+      {{/each}}
+    </div>
+  </div>
+</body>
+
+</html>

@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{title}}</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      width: 720px;
+      font-family: "Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", sans-serif;
+      background: #eef1f7;
+      padding: 24px;
+      color: #2b3245;
+    }
+
+    .board {
+      background: #fff;
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(38, 50, 90, .12);
+    }
+
+    .head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 26px;
+      background: linear-gradient(120deg, #4a6cf7, #7b5bf0 60%, #a45bf0);
+      color: #fff;
+    }
+
+    .head .title {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 2px;
+    }
+
+    .head .tips {
+      font-size: 13px;
+      text-align: right;
+      opacity: .9;
+      line-height: 1.5;
+    }
+
+    .list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 16px;
+    }
+
+    .item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border-left: 5px solid var(--c);
+      background: var(--bg);
+    }
+
+    /* 节次块 */
+    .item .periods {
+      flex: 0 0 78px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      padding: 6px 0;
+      border-radius: 9px;
+      background: #fff;
+    }
+
+    .item .periods .no {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--c);
+    }
+
+    .item .periods .time {
+      font-size: 10px;
+      line-height: 1.25;
+      text-align: center;
+      color: #9aa2bb;
+    }
+
+    .item .content {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .item .name {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--c);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .item .meta {
+      font-size: 12.5px;
+      color: #6b748c;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .item .tag {
+      flex: 0 0 auto;
+      font-size: 11px;
+      padding: 2px 9px;
+      border-radius: 20px;
+      background: #fff;
+      color: var(--c);
+      border: 1px solid var(--c);
+    }
+
+    .empty {
+      padding: 70px 0;
+      text-align: center;
+      color: #9aa2bb;
+      font-size: 16px;
+    }
+
+    /* 与 index.html 保持同一套配色 */
+    .c0 { --c: #4a6cf7; --bg: #eef2ff; }
+    .c1 { --c: #17a673; --bg: #e9f8f2; }
+    .c2 { --c: #e07a1f; --bg: #fdf3e7; }
+    .c3 { --c: #c2456a; --bg: #fdeef2; }
+    .c4 { --c: #7b5bf0; --bg: #f1ecfe; }
+    .c5 { --c: #0f9bb8; --bg: #e8f7fa; }
+    .c6 { --c: #8a7d1f; --bg: #faf7e3; }
+    .c7 { --c: #5b6b8c; --bg: #eef1f7; }
+  </style>
+</head>
+
+<body>
+  <div class="board">
+    <div class="head">
+      <div class="title">{{title}}</div>
+      <div class="tips">
+        {{dayName}}{{if date}} · {{date}}{{/if}}<br>
+        {{if weekNow}}第 {{weekNow}} 周 / 共 {{weekNum}} 周 · {{/if}}共 {{total}} 节课
+      </div>
+    </div>
+
+    <div class="list">
+      {{if total === 0}}
+      <div class="empty">这一天没有课，好好休息~</div>
+      {{/if}}
+
+      {{each courses item}}
+      <div class="item c{{item.Color}}">
+        <div class="periods">
+          <span class="no">{{item.ClassStart}}{{if item.ClassEnd > item.ClassStart}}-{{item.ClassEnd}}{{/if}}</span>
+          <span class="time">{{item.Time}}</span>
+        </div>
+        <div class="content">
+          <span class="name">{{item.CourseName}}</span>
+          <span class="meta">{{item.TeachName}} · {{item.ClassRoom}}</span>
+        </div>
+        {{if item.Tag}}
+        <span class="tag">{{item.Tag}}</span>
+        {{/if}}
+      </div>
+      {{/each}}
+    </div>
+  </div>
+</body>
+
+</html>

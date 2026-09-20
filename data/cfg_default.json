@@ -1,0 +1,10 @@
+{
+  "class": {
+    "token": "",
+    "orgaId": "10001",
+    "cacheTime": 300,
+    "maxPeriod": 0,
+    "scale": 1.3,
+    "bindTip": true
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "Msg": null,
+  "Code": "600",
+  "Data": {
+    "ClassNum": "10",
+    "WeekNow": "3",
+    "WeekNum": "21",
+    "Week": [
+      { "WeekName": "星期日", "Rq": "2026-09-20" },
+      { "WeekName": "星期一", "Rq": "2026-09-21" },
+      { "WeekName": "星期二", "Rq": "2026-09-22" },
+      { "WeekName": "星期三", "Rq": "2026-09-23" },
+      { "WeekName": "星期四", "Rq": "2026-09-24" },
+      { "WeekName": "星期五", "Rq": "2026-09-25" },
+      { "WeekName": "星期六", "Rq": "2026-09-26" }
+    ],
+    "Rank": [
+      { "CourseName": "大学物理B（二）", "TeachName": "周良玉", "ClassLxBz": "未到", "Class": 3, "ClassEnd": 4, "ClassRoom": "A座421", "Rq": "2026-09-22" },
+      { "CourseName": "分析化学", "TeachName": "邓留", "ClassLxBz": null, "Class": 5, "ClassEnd": 6, "ClassRoom": "D座205", "Rq": "2026-09-24" },
+      { "CourseName": "物理化学B(一)", "TeachName": "邱晓清", "ClassLxBz": "调课", "Class": 11, "ClassEnd": 12, "ClassRoom": "C座307", "Rq": "2026-09-20" },
+      { "CourseName": "电工技术B", "TeachName": "毛先柏", "ClassLxBz": null, "Class": 7, "ClassEnd": 8, "ClassRoom": "B座112", "Rq": "2026-09-26" },
+      { "CourseName": "没有日期的课", "TeachName": "张三", "Class": 1, "ClassEnd": 2 }
+    ]
+  }
+}

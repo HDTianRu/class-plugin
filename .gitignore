@@ -1,0 +1,7 @@
+data/*
+!data/class
+data/class/*
+!data/class/.placeholder
+!data/cfg_default.json
+data/cfg.json
+node_modules
