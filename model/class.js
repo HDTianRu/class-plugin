@@ -3,10 +3,11 @@ import Cfg from "./Cfg.js"
 
 /* 节次时间表，第 n 节取 TIMES[n-1]，按学校作息调整 */
 const TIMES = ['08:00', '08:55', '10:00', '10:55', '14:00', '14:55',
-  '16:00', '16:55', '19:00', '19:55', '20:50', '21:45'
-]
+  '16:00', '16:55', '19:00', '19:55', '20:30', '21:25']
 /* 列头，Week 1 ~ 7 对应 周日 ~ 周六 */
 const DAYS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+/* 单节课时长（分钟），第 end 节的结束时间 = 第 end 节上课时间 + 该值 */
+const CLASS_MINUTES = 45
 /* 最少显示节数 */
 const MIN_PERIOD = 10
 /* 课程配色数量，与 resources/class/index.html 中的 .c0 ~ .c7 对应 */
@@ -113,7 +114,7 @@ class Class {
   * 整理接口数据为渲染数据
   * 返回 { id, courses, total, periods, days, weekNow, weekNum, updateTime }
   *   courses: { CourseName, TeachName, ClassRoom, ClassStart, ClassEnd, Week, DayName,
-  *              Tag, Color, Col, RowStart, RowEnd, TimeText }
+  *              Tag, Color, Col, RowStart, RowEnd, TimeStart, TimeEnd, TimeText }
   *   periods: { no, time }
   *   days:    { name, date, Weekend, Today }
   * */
@@ -144,6 +145,10 @@ class Class {
         colors.push(name)
       }
 
+      let range = this.timeRange(start, end)
+      /* 连堂（如 3-4 节）写全范围，单节只写一个节次 */
+      let noText = `第 ${start}${end > start ? `-${end}` : ''} 节`
+
       courses.push({
         CourseName: name,
         TeachName: item.TeachName || '待定',
@@ -151,14 +156,17 @@ class Class {
         ClassStart: start,
         ClassEnd: end,
         Week: week,
-        DayName: DAYS[week - 1] || '',
+        DayName: this.dayName(week),
+        /* ClassLxBz 描述这节课的到勤情况，空值才不显示标签 */
         Tag: this.getTag(item.ClassLxBz),
         Color: color,
         /* 表格定位：第 1 列为节次，故星期 +1；第 1 行为表头，故节次 +1 */
         Col: week + 1,
         RowStart: start + 1,
         RowEnd: end + 2,
-        TimeText: `第 ${start}-${end} 节`
+        TimeStart: range.Start,
+        TimeEnd: range.End,
+        TimeText: range.Start ? `${noText} ${range.Start}~${range.End}` : noText
       })
     })
 
@@ -167,7 +175,12 @@ class Class {
 
     let periods = []
     for (let i = 1; i <= maxPeriod; i++) {
-      periods.push({ no: i, time: TIMES[i - 1] || '' })
+      /* 每行显示本节的 上课时间~下课时间，如第 1 节 08:00~08:45 */
+      let range = this.timeRange(i, i)
+      periods.push({
+        no: i,
+        time: range.Start ? `${range.Start}~${range.End}` : ''
+      })
     }
 
     return {
@@ -203,9 +216,10 @@ class Class {
     return 0
   }
 
-  /* 只有异常状态才显示标签，未到/空值不显示 */
+  /* ClassLxBz 为这节课的到勤情况，空值不显示标签 */
   getTag(bz) {
-    return (bz && bz !== '未到') ? bz : ''
+    if (!bz) return ''
+    return String(bz).trim()
   }
 
   /* 表头：有 Week 数据时带上日期，并标记周末与今天 */
@@ -235,6 +249,11 @@ class Class {
 
   /* ---------- 按天取课 ---------- */
 
+  /* 星期名，1 为周日 */
+  dayName(week) {
+    return DAYS[week - 1] || ''
+  }
+
   /* 数据里的今天，没有则按真实星期推算 */
   todayWeek(schedule) {
     let idx = (schedule?.days || []).findIndex((day) => day.Today)
@@ -257,15 +276,18 @@ class Class {
   * */
   dayData(schedule, week, title = '课表') {
     let day = schedule?.days?.[week - 1] || {}
-    let courses = this.dayCourses(schedule, week).map((item) => ({
-      ...item,
-      DayName: day.name || '',
-      /* 左侧节次块显示上课时间段，如 08:00~08:55 */
-      Time: this.timeText(item.ClassStart, item.ClassEnd)
-    }))
+    let courses = this.dayCourses(schedule, week).map((item) => {
+      let range = this.timeRange(item.ClassStart, item.ClassEnd)
+      return {
+        ...item,
+        DayName: day.name || '',
+        /* 左侧节次块显示起止时间，如 08:00~09:40 */
+        Time: range.Start ? `${range.Start}~${range.End}` : ''
+      }
+    })
     return {
       title,
-      dayName: day.name || DAYS[week - 1] || '',
+      dayName: day.name || this.dayName(week) || '',
       date: day.date || '',
       weekNow: schedule?.weekNow || '',
       weekNum: schedule?.weekNum || '',
@@ -274,12 +296,31 @@ class Class {
     }
   }
 
-  /* 第 start ~ end 节的时间段文本 */
-  timeText(start, end) {
-    let from = TIMES[start - 1]
-    let to = TIMES[end - 1]
-    if (!from) return ''
-    return to ? `${from}~${to}` : from
+  /*
+  * 解析 "HH:MM" 为当天的分钟数，非法值返回 -1
+  * */
+  toMinutes(time) {
+    let match = /^(\d{1,2}):(\d{2})$/.exec(time || '')
+    if (!match) return -1
+    return Number(match[1]) * 60 + Number(match[2])
+  }
+
+  /*
+  * 第 start 节的上课时间 ~ 第 end 节的结束时间
+  * 结束时间 = 第 end 节上课时间 + 45 分钟，返回 { Start, End }
+  * */
+  timeRange(start, end) {
+    let startAt = TIMES[start - 1] || ''
+    let endAt = TIMES[end - 1] || ''
+    let startMin = this.toMinutes(startAt)
+    let endMin = this.toMinutes(endAt)
+    if (startMin < 0) return { Start: '', End: '' }
+
+    let fmt = (min) => `${String(Math.floor(min / 60) % 24).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`
+    return {
+      Start: startAt,
+      End: endMin < 0 ? '' : fmt(endMin + CLASS_MINUTES)
+    }
   }
 }
 

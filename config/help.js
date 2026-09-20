@@ -67,6 +67,11 @@ export const helpList = [{
       desc: '查看整周课表'
     },
     {
+      icon: 76,
+      title: '#课表 [1~7|周X]',
+      desc: '查看指定星期，如 #课表3 / #课表周三'
+    },
+    {
       icon: 75,
       title: '#课表强制',
       desc: '忽略缓存重新拉取'

@@ -97,6 +97,8 @@
     }
 
     .period {
+      /* 每行占第 1 列，避免自动流式排列把节次塞进表头那一行 */
+      grid-column: 1;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -154,15 +156,16 @@
       text-overflow: ellipsis;
     }
 
+    /* 到勤标签（ClassLxBz），用暖色与课程配色区分开 */
     .course .tag {
       align-self: flex-start;
       font-size: 10px;
       padding: 1px 6px;
       border-radius: 20px;
-      background: #fff;
-      color: var(--c);
-      border: 1px solid var(--c);
-      opacity: .85;
+      background: #fff4e8;
+      color: #b3560f;
+      border: 1px solid #f0c9a0;
+      opacity: .95;
     }
 
     .empty {

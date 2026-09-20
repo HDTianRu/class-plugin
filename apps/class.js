@@ -1,17 +1,6 @@
-import path from 'path'
-import fs from 'fs'
-import lodash from 'lodash'
 import Cfg from '../model/Cfg.js'
 import render from '../model/render.js'
 import classApi from "../model/class.js"
-import HelpTheme from './help/HelpTheme.js'
-import {
-  helpCfg,
-  helpList
-} from '../config/help.js'
-import {
-  pluginResources
-} from '../config/constant.js'
 
 /* 请求节流：同一用户 5 秒内重复触发只响应一次，避免刷图 */
 const LOCK_TIME = 5 * 1000
@@ -29,21 +18,22 @@ export default class Class extends plugin {
         reg: '^#?(clazz|class|clz|cls|课表|课程表)(强制|刷新|更新)?$',
         fnc: 'clz'
       }, {
+        /* 指定星期：#课表3 / #课表周三 / #class7 / #clz日 */
+        reg: '^#?(clazz|class|clz|cls|课表|课程表)(\\s*[1-7]|\\s*周?[日一二三四五六])$',
+        fnc: 'weekDay'
+      }, {
         reg: '^#?(今日|今天|本日)课表$',
         fnc: 'today'
       }, {
         reg: '^#?(明日|明天)课表$',
         fnc: 'tomorrow'
       }, {
-        reg: '^#?课表(帮助|菜单|说明|help)$',
-        fnc: 'help'
-      }, {
         /* 绑定：#绑定课表 学号 / #绑定 学号 */
-        reg: '^#?绑定(课表|教务)?\\s*(\\S*)$',
+        reg: '^#?(绑定|bind)(课表|教务)?\\s*(\\S*)$',
         fnc: 'bind'
       }, {
         /* 解绑：#解绑课表 / 主人可 #解绑课表 @某人 */
-        reg: '^#?(解绑|取消绑定)(课表|教务)?$',
+        reg: '^#?(unbind|解绑|取消绑定)(课表|教务)?$',
         fnc: 'unbind'
       }]
     })
@@ -70,6 +60,30 @@ export default class Class extends plugin {
     })
   }
 
+  /* ---------- 指定星期 ---------- */
+  async weekDay(e) {
+    let week = this.getWeek(e.msg)
+    if (!week) return false
+
+    let schedule = await this.getSchedule(e)
+    if (!schedule) return false
+
+    let data = classApi.dayData(schedule, week, `${classApi.dayName(week)}课表`)
+    return render('class/day', data, {
+      e, scale: this.getScale()
+    })
+  }
+
+  /* 从指令里取出星期：1~7 直接对应 周日~周六，也接受「周三」 */
+  getWeek(msg) {
+    let text = String(msg || '').replace(/^#?(clazz|class|clz|cls|课表|课程表)/i, '').trim()
+    let idx = '日一二三四五六'.indexOf(text.replace(/^周/, ''))
+    if (idx >= 0) return idx + 1
+
+    let num = Number(text)
+    return (num >= 1 && num <= 7) ? num : 0
+  }
+
   /* ---------- 今日 / 明日 ---------- */
   async today(e) {
     return this.showDay(e, 'today')
@@ -94,7 +108,7 @@ export default class Class extends plugin {
 
   /* ---------- 绑定 ---------- */
   async bind(e) {
-    let match = /^#?绑定(课表|教务)?\s*(\S*)$/.exec(e.msg.trim())
+    let match = /^#?(绑定|bind)(课表|教务)?\s*(\S*)$/.exec(e.msg.trim())
     let id = (match?.[2] || '').replace(/^[#＃]/, '')
     if (!id) return e.reply('格式：#绑定课表 学号', true)
 
@@ -106,7 +120,7 @@ export default class Class extends plugin {
     let tip = [
       `绑定成功${old && old !== id ? `，已由 ${old} 更新为 ${id}` : ''}`,
       `学号：${id}`,
-      qq === e.user_id ? '发送「#课表」即可查看' : `已为 ${qq} 绑定，发送「#课表」即可查看`
+      qq === e.user_id ? '发送「#class」即可查看' : `已为 ${qq} 绑定，发送「#class」即可查看`
     ]
     await e.reply(tip.join('\n'), true)
 
@@ -130,50 +144,6 @@ export default class Class extends plugin {
     return e.reply(qq === e.user_id ? '已解绑课表' : `已为 ${qq} 解绑课表`, true)
   }
 
-  /* ---------- 帮助 ---------- */
-  async help(e) {
-    /* 优先复用帮助图，未配置帮助图时回退到文字 */
-    let helpFile = path.join(pluginResources, 'help/index.html')
-    if (!fs.existsSync(helpFile)) {
-      return e.reply(this.helpText(), true)
-    }
-    let helpGroup = lodash.cloneDeep(helpList)
-    lodash.forEach(helpGroup, (group) => {
-      lodash.forEach(group.list, (item) => {
-        let icon = item.icon * 1
-        if (!icon) {
-          item.css = 'display:none'
-        } else {
-          let x = (icon - 1) % 10
-          let y = (icon - x - 1) / 10
-          item.css = `background-position:-${x * 50}px -${y * 50}px`
-        }
-      })
-    })
-    let themeData = await HelpTheme.getThemeData(helpCfg)
-    return render('help/index', {
-      helpCfg,
-      helpGroup,
-      ...themeData,
-      element: 'default'
-    }, {
-      e, scale: this.getScale()
-    })
-  }
-
-  helpText() {
-    return [
-      '【课表插件】',
-      '#绑定课表 学号 —— 绑定教务学号',
-      '#解绑课表 —— 解除绑定',
-      '#课表 —— 查看整周课表',
-      '#课表强制 —— 忽略缓存重新拉取',
-      '#今日课表 / #明日课表 —— 查看单天课程',
-      '',
-      '配置：data/cfg.json 中 class.token 为接口令牌'
-    ].join('\n')
-  }
-
   /* ---------- 公共 ---------- */
 
   /* 取课表，未绑定或失败时给出提示并返回 null */
@@ -185,8 +155,7 @@ export default class Class extends plugin {
     if (!id) {
       await e.reply([
         '你还没有绑定课表',
-        '发送「#绑定课表 学号」完成绑定',
-        '学号即教务系统中的用户编号'
+        '发送「#bind 学号」完成绑定'
       ].join('\n'), true)
       return null
     }

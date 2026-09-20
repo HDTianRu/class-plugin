@@ -1,5 +1,4 @@
 import lodash from 'lodash'
-import fs from 'fs'
 import path from "path"
 import render from "../model/render.js"
 import HelpTheme from './help/HelpTheme.js'
@@ -7,21 +6,16 @@ import {
   helpCfg,
   helpList
 } from "../config/help.js"
-import {
-  pluginResources
-} from "../config/constant.js"
-
-const helpPath = path.join(pluginResources, "help")
 
 export class help extends plugin {
   constructor() {
     super({
-      name: '[推送插件]帮助',
-      dsc: '推送帮助',
+      name: '[课表插件]帮助',
+      dsc: '课表帮助',
       event: 'message',
       priority: 100,
       rule: [{
-        reg: "^#?((B|b)ili)*(推送|(P|p)ush)(命令|帮助|菜单|help|说明|功能|指令|使用说明)$",
+        reg: '^#?课表(帮助|菜单|说明|help)$',
         fnc: 'help'
       }]
     })
