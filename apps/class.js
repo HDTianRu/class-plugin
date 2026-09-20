@@ -74,14 +74,19 @@ export default class Class extends plugin {
     })
   }
 
-  /* 从指令里取出星期：1~7 直接对应 周日~周六，也接受「周三」 */
+  /*
+  * 从指令里取出星期，返回接口用的星期号（Week，1 为周日）
+  * 指令里的 1~6 对应 周一~周六，7 对应 周日；也接受「周三」
+  * */
   getWeek(msg) {
     let text = String(msg || '').replace(/^#?(clazz|class|clz|cls|课表|课程表)/i, '').trim()
     let idx = '日一二三四五六'.indexOf(text.replace(/^周/, ''))
     if (idx >= 0) return idx + 1
 
+    /* 1~6 -> 周一~周六（接口 2~7），7 -> 周日（接口 1） */
     let num = Number(text)
-    return (num >= 1 && num <= 7) ? num : 0
+    if (num >= 1 && num <= 6) return num + 1
+    return num === 7 ? 1 : 0
   }
 
   /* ---------- 今日 / 明日 ---------- */

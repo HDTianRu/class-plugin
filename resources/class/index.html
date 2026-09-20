@@ -53,7 +53,8 @@
       display: grid;
       grid-template-columns: 78px repeat(7, 1fr);
       grid-template-rows: 52px;
-      grid-auto-rows: 76px;
+      /* 行高以 76px 起，课程内容换行后按需长高，节次行随之对齐 */
+      grid-auto-rows: minmax(76px, auto);
       gap: 6px;
       padding: 14px;
     }
@@ -140,20 +141,15 @@
       font-weight: 700;
       line-height: 1.3;
       color: var(--c);
-      display: -webkit-box;
-      -webkit-line-clamp: 3;
-      line-clamp: 3;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
+      /* 节课名过长时换行，不再截断 */
+      word-break: break-word;
     }
 
     .course .meta {
       font-size: 11.5px;
       line-height: 1.35;
       color: #6b748c;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      word-break: break-word;
     }
 
     /* 到勤标签（ClassLxBz），用暖色与课程配色区分开 */
