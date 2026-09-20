@@ -12,16 +12,16 @@ try {
 export class update extends plugin {
   constructor() {
     super({
-      name: "推送更新插件",
+      name: "课表更新插件",
       event: "message",
-      priority: 1000,
+      priority: 1,
       rule: [
         {
-          reg: `^#*(推送|${pluginName})(插件)?(强制)?更新|^#*(强制)?更新(推送|${pluginName})(插件)?`,
+          reg: `^#*(课表|${pluginName})(插件)?(强制)?更新|^#*(强制)?更新(课表|${pluginName})(插件)?`,
           fnc: "update"
         },
         {
-          reg: `^#?(推送|${pluginName})(插件)?更新日志`,
+          reg: `^#?(课表|${pluginName})(插件)?更新日志`,
           fnc: "update_log"
         }
       ]
