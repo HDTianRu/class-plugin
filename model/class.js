@@ -8,6 +8,8 @@ const TIMES = ['08:00', '08:55', '10:00', '10:55', '14:00', '14:55',
 const DAYS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
 /* 单节课时长（分钟），第 end 节的结束时间 = 第 end 节上课时间 + 该值 */
 const CLASS_MINUTES = 45
+/* 接口原始数据的 redis 缓存时长（秒），默认 30 分钟 */
+const RAW_CACHE_TIME = 30 * 60
 /* 最少显示节数 */
 const MIN_PERIOD = 10
 /* 课程配色数量，与 resources/class/index.html 中的 .c0 ~ .c7 对应 */
@@ -50,26 +52,39 @@ class Class {
   async getSchedule(id, force = false) {
     if (!id) return null
 
-    let cacheTime = Number(Cfg.get('class.cacheTime', 300)) || 0
-    let cacheKey = `class-plugin:schedule:${id}`
+    let raw = await this.getRaw(id, force)
+    if (!raw) return null
 
-    if (!force && cacheTime > 0) {
+    return this.format(raw, id)
+  }
+
+  /*
+  * 取接口原始数据（Data 部分），用 redis 缓存，避免频繁打教务接口
+  * 缓存 30 分钟，force 为 true 时跳过读取
+  * */
+  async getRaw(id, force = false) {
+    let cacheKey = `class-plugin:raw:${id}`
+
+    if (!force) {
       let cached = await Data.getCacheJSON(cacheKey)
-      if (cached?.courses) return cached
+      if (cached && Object.keys(cached).length) return cached
     }
 
     let raw = await this.request(id)
     if (!raw) return null
 
-    let ret = this.format(raw, id)
-    if (cacheTime > 0) {
-      try {
-        await Data.setCacheJSON(cacheKey, ret, cacheTime)
-      } catch (e) {
-        /* redis 不可用时忽略缓存 */
-      }
+    try {
+      await Data.setCacheJSON(cacheKey, raw, this.rawCacheTime())
+    } catch (e) {
+      /* redis 不可用时忽略缓存 */
     }
-    return ret
+    return raw
+  }
+
+  /* 接口缓存时长（秒），默认 30 分钟 */
+  rawCacheTime() {
+    let time = Number(Cfg.get('class.rawCacheTime', RAW_CACHE_TIME))
+    return time > 0 ? time : RAW_CACHE_TIME
   }
 
   /* 请求接口，返回 Data 部分 */
@@ -289,6 +304,8 @@ class Class {
       title,
       dayName: day.name || this.dayName(week) || '',
       date: day.date || '',
+      /* 他人课表脱敏时由 apps 层置位，模板据此隐藏周次信息并给出提示 */
+      hideInfo: schedule?.hideInfo || false,
       weekNow: schedule?.weekNow || '',
       weekNum: schedule?.weekNum || '',
       total: courses.length,

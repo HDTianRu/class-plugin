@@ -12,41 +12,55 @@
       box-sizing: border-box;
     }
 
+    :root {
+      --ink: #20263a;
+      --ink-2: #4c5568;
+      --muted: #929aad;
+      --line: #e8ebf3;
+      --accent: #2f4a7d;
+      --ok-fg: #1e7a52; --ok-bg: #eaf6ef; --ok-line: #c6e4d3;
+      --bad-fg: #b23a34; --bad-bg: #fdeceb; --bad-line: #f2cdca;
+    }
+
     body {
       width: 720px;
-      font-family: "Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", sans-serif;
-      background: #eef1f7;
       padding: 24px;
-      color: #2b3245;
+      background: #eaeef5;
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", sans-serif;
+      -webkit-font-smoothing: antialiased;
     }
 
     .board {
       background: #fff;
-      border-radius: 18px;
+      border-radius: 16px;
       overflow: hidden;
-      box-shadow: 0 10px 30px rgba(38, 50, 90, .12);
+      box-shadow: 0 14px 36px rgba(26, 36, 64, .10), 0 2px 6px rgba(26, 36, 64, .04);
     }
 
     .head {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 18px 26px;
-      background: linear-gradient(120deg, #4a6cf7, #7b5bf0 60%, #a45bf0);
+      gap: 16px;
+      padding: 18px 24px 16px;
+      background: #232b40;
+      border-bottom: 3px solid var(--accent);
       color: #fff;
     }
 
     .head .title {
-      font-size: 22px;
-      font-weight: 700;
-      letter-spacing: 2px;
+      font-size: 20px;
+      font-weight: 600;
+      letter-spacing: 3px;
     }
 
     .head .tips {
-      font-size: 13px;
+      font-size: 12.5px;
+      line-height: 1.6;
       text-align: right;
-      opacity: .9;
-      line-height: 1.5;
+      letter-spacing: .3px;
+      color: rgba(255, 255, 255, .6);
     }
 
     .list {
@@ -56,39 +70,43 @@
       padding: 16px;
     }
 
+    /* 与整周课表同一观感：正文墨色 + 左侧细色条 */
     .item {
       display: flex;
       align-items: center;
       gap: 14px;
-      padding: 10px 12px;
-      border-radius: 12px;
-      border-left: 5px solid var(--c);
+      padding: 10px 12px 10px 13px;
+      border-radius: 9px;
+      border: 1px solid var(--line);
+      border-left: 3px solid var(--c);
       background: var(--bg);
     }
 
     /* 节次块 */
     .item .periods {
-      flex: 0 0 78px;
+      flex: 0 0 76px;
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 2px;
-      padding: 6px 0;
-      border-radius: 9px;
-      background: #fff;
+      gap: 3px;
+      padding: 7px 0;
+      border-radius: 8px;
+      border: 1px solid #f1f3f8;
+      background: #f9fbfe;
     }
 
     .item .periods .no {
-      font-size: 15px;
-      font-weight: 700;
-      color: var(--c);
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--ink-2);
     }
 
     .item .periods .time {
       font-size: 10px;
-      line-height: 1.25;
+      line-height: 1.3;
       text-align: center;
-      color: #9aa2bb;
+      letter-spacing: .2px;
+      color: var(--muted);
     }
 
     .item .content {
@@ -96,51 +114,67 @@
       min-width: 0;
       display: flex;
       flex-direction: column;
-      gap: 5px;
+      gap: 4px;
     }
 
     .item .name {
-      font-size: 16px;
-      font-weight: 700;
-      color: var(--c);
+      font-size: 15.5px;
+      font-weight: 600;
+      line-height: 1.35;
       /* 课名过长时换行，不再截断 */
       word-break: break-word;
     }
 
     .item .meta {
       font-size: 12.5px;
-      color: #6b748c;
+      line-height: 1.4;
+      color: var(--ink-2);
       word-break: break-word;
     }
 
-    /* 到勤标签（ClassLxBz），与整周课表保持同一观感 */
+    /* 到勤标签（ClassLxBz）：正常=绿，未到=红，其余中性灰，空值不渲染 */
     .item .tag {
       flex: 0 0 auto;
-      font-size: 11px;
-      padding: 2px 9px;
+      padding: 1px 10px;
       border-radius: 20px;
-      background: #fff4e8;
-      color: #b3560f;
-      border: 1px solid #f0c9a0;
+      border: 1px solid #e8eaf1;
+      background: #f3f4f8;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.7;
+      letter-spacing: .5px;
       white-space: nowrap;
     }
 
-    .empty {
-      padding: 70px 0;
-      text-align: center;
-      color: #9aa2bb;
-      font-size: 16px;
+    .item.st-ok .tag {
+      border-color: var(--ok-line);
+      background: var(--ok-bg);
+      color: var(--ok-fg);
     }
 
-    /* 与 index.html 保持同一套配色 */
-    .c0 { --c: #4a6cf7; --bg: #eef2ff; }
-    .c1 { --c: #17a673; --bg: #e9f8f2; }
-    .c2 { --c: #e07a1f; --bg: #fdf3e7; }
-    .c3 { --c: #c2456a; --bg: #fdeef2; }
-    .c4 { --c: #7b5bf0; --bg: #f1ecfe; }
-    .c5 { --c: #0f9bb8; --bg: #e8f7fa; }
-    .c6 { --c: #8a7d1f; --bg: #faf7e3; }
-    .c7 { --c: #5b6b8c; --bg: #eef1f7; }
+    .item.st-bad .tag {
+      border-color: var(--bad-line);
+      background: var(--bad-bg);
+      color: var(--bad-fg);
+    }
+
+    .empty {
+      padding: 72px 0;
+      text-align: center;
+      color: var(--muted);
+      font-size: 15px;
+      letter-spacing: 1px;
+    }
+
+    /* 与 index.html 保持同一套低饱和配色 */
+    .c0 { --c: #5b6f9c; --bg: #f8fafc; }
+    .c1 { --c: #4f8378; --bg: #f7fbfa; }
+    .c2 { --c: #9a7a4f; --bg: #fcfaf6; }
+    .c3 { --c: #8f6070; --bg: #fdf9fa; }
+    .c4 { --c: #6f6a9c; --bg: #f9f9fc; }
+    .c5 { --c: #4e7c8c; --bg: #f7fafb; }
+    .c6 { --c: #7d7f4f; --bg: #fbfbf6; }
+    .c7 { --c: #6b7280; --bg: #f9fafb; }
   </style>
 </head>
 
@@ -150,7 +184,7 @@
       <div class="title">{{title}}</div>
       <div class="tips">
         {{dayName}}{{if date}} · {{date}}{{/if}}<br>
-        {{if weekNow}}第 {{weekNow}} 周 / 共 {{weekNum}} 周 · {{/if}}共 {{total}} 节课
+        {{if hideInfo}}教师与教室已隐藏{{else}}{{if weekNow}}第 {{weekNow}} 周 / 共 {{weekNum}} 周 · {{/if}}共 {{total}} 节课{{/if}}
       </div>
     </div>
 
@@ -160,7 +194,7 @@
       {{/if}}
 
       {{each courses item}}
-      <div class="item c{{item.Color}}">
+      <div class="item c{{item.Color}} {{item.Tag === '正常' ? 'st-ok' : (item.Tag === '未到' ? 'st-bad' : '')}}">
         <div class="periods">
           <span class="no">{{item.ClassStart}}{{if item.ClassEnd > item.ClassStart}}-{{item.ClassEnd}}{{/if}}</span>
           <span class="time">{{item.Time}}</span>

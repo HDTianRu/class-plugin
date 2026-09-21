@@ -85,6 +85,11 @@ export const helpList = [{
       icon: 87,
       title: 'Tips',
       desc: '主人可用 #绑定课表 学号 @某人 代绑'
+    },
+    {
+      icon: 74,
+      title: 'Tips',
+      desc: '查他人课表时默认隐藏教师与教室，可用 class.hideOthersInfo 关闭'
     }]
 }, {
   group: '管理命令，仅主人可用',

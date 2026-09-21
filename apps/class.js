@@ -6,6 +6,9 @@ import classApi from "../model/class.js"
 const LOCK_TIME = 5 * 1000
 const locks = {}
 
+/* 脱敏后替换教师/教室的占位文本 */
+const HIDE_TEXT = '已隐藏'
+
 export default class Class extends plugin {
   constructor() {
     super({
@@ -114,7 +117,7 @@ export default class Class extends plugin {
   /* ---------- 绑定 ---------- */
   async bind(e) {
     let match = /^#?bind\s*(\S*)$/.exec(e.msg.trim())
-    let id = (match?.[1] || '').replace(/^[#＃]/, '')
+    let id = (match?.[1] || '')
     if (!id) return e.reply('格式：#bind 学号', true)
 
     /* 主人可通过 @ 帮他人绑定 */
@@ -151,6 +154,29 @@ export default class Class extends plugin {
 
   /* ---------- 公共 ---------- */
 
+  /*
+  * 是否为「查别人课表」：指令带了 @ 且不是查自己的
+  * */
+  isOthers(e, qq) {
+    return String(qq || '') !== String(e.user_id)
+  }
+
+  /*
+  * 他人查询且开启脱敏时，抹掉教师与教室
+  * */
+  mask(schedule, hide) {
+    if (!hide || !schedule?.courses) return schedule
+    return {
+      ...schedule,
+      hideInfo: true,
+      courses: schedule.courses.map((item) => ({
+        ...item,
+        TeachName: HIDE_TEXT,
+        ClassRoom: HIDE_TEXT
+      }))
+    }
+  }
+
   /* 取课表，未绑定或失败时给出提示并返回 null */
   async getSchedule(e, force = false) {
     let qq = e.at || e.user_id
@@ -170,7 +196,9 @@ export default class Class extends plugin {
       await e.reply('课表获取失败，请稍后重试' + (e.isMaster ? '（请检查 class.token 配置）' : ''), true)
       return null
     }
-    return schedule
+
+    let hide = this.isOthers(e, qq) && Cfg.get('class.hideOthersInfo', true)
+    return this.mask(schedule, hide)
   }
 
   getScale() {

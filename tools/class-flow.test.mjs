@@ -15,9 +15,24 @@ globalThis.logger = {
 }
 globalThis.redis = {
   store: new Map(),
-  async get(key) { return this.store.get(key) ?? null },
-  async set(key, val) { this.store.set(key, val) },
+  async get(key) { return this.read(key) },
+  /* EX 单位秒，按真实时间失效，便于断言缓存时长 */
+  async set(key, val, opt) {
+    let EX = opt?.EX
+    return this.store.set(key, { val, expireAt: EX ? Date.now() + EX * 1000 : 0 })
+  },
   async del(key) { this.store.delete(key) },
+  async ttl(key) {
+    let item = this.store.get(key)
+    if (!item) return -2
+    return item.expireAt ? Math.round((item.expireAt - Date.now()) / 1000) : -1
+  },
+  read(key) {
+    let item = this.store.get(key)
+    if (!item) return null
+    if (item.expireAt && item.expireAt <= Date.now()) { this.store.delete(key); return null }
+    return item.val
+  }
 }
 
 /* plugin 基类 + render，模拟 Yunzai 的 e.runtime.render */
@@ -74,7 +89,7 @@ const call = async (fn, msg) => { e.msg = msg; e.replies = []; await app[fn](e) 
 /* 配置 token 与节流间隔，否则接口会被跳过 / 请求被节流 */
 Cfg._set('class.token', 'test-token')
 Cfg._set('class.lockTime', 0)
-Cfg._set('class.cacheTime', 300)
+Cfg._set('class.rawCacheTime', 1800)
 
 console.log('=== 1. 未绑定时查询 ===')
 await call('clz', '#课表')
@@ -105,10 +120,22 @@ console.log('\n=== 5. 缓存 ===')
 let before = fetchCount
 await call('clz', '#课表')
 ok(fetchCount === before, '命中缓存不再请求接口')
+ok(await redis.get('class-plugin:raw:20240001') !== null, '原始数据写入 redis')
+let ttl = await redis.ttl('class-plugin:raw:20240001')
+ok(ttl > 1740 && ttl <= 1800, `缓存过期时间为 30 分钟（当前 ${ttl}s）`)
+ok(await redis.get('class-plugin:schedule:20240001') === null, '不再单独缓存整理后的数据')
+
+/* 缓存过期后应重新请求接口 */
+let cacheRaw = await redis.get('class-plugin:raw:20240001')
+await redis.set('class-plugin:raw:20240001', cacheRaw, { EX: 0 })
+redis.store.get('class-plugin:raw:20240001').expireAt = Date.now() - 1000
+let expiredBefore = fetchCount
+await call('clz', '#课表')
+ok(fetchCount === expiredBefore + 1, '缓存过期后重新请求接口')
 
 console.log('\n=== 6. 强制刷新 ===')
 await call('clz', '#课表强制')
-ok(fetchCount === before + 1, '强制刷新重新请求接口')
+ok(fetchCount === expiredBefore + 2, '强制刷新重新请求接口')
 
 console.log('\n=== 7. 今日 / 明日课表 ===')
 await call('today', '#今日课表')
@@ -166,6 +193,37 @@ globalThis.fetch = async () => ({ json: async () => ({ Code: '401', Msg: 'token 
 await call('clz', '#课表强制')
 ok(e.replies.some((r) => r.includes('课表获取失败')), '业务错误码给出失败提示')
 globalThis.fetch = goodFetch
+
+console.log('\n=== 13. 查他人课表脱敏 ===')
+Cfg._set('class.lockTime', 0)
+await call('bind', '#bind 20240001')
+ok(e.replies[0].includes('绑定成功'), '重新绑定自己的课表')
+
+/* 自己查：教师/教室正常显示 */
+await call('clz', '#课表')
+let mine = RENDERS[RENDERS.length - 1].data
+ok(mine.courses.every((c) => c.TeachName && c.TeachName !== '已隐藏'), '查自己时教师正常显示')
+ok(!lastHtml().includes('教师与教室已隐藏'), '查自己不显示脱敏提示')
+
+/* @ 他人：教师/教室脱敏 */
+e.at = '20240001'
+await call('clz', '#课表')
+let others = RENDERS[RENDERS.length - 1].data
+ok(others.courses.length === mine.courses.length, '脱敏不影响课程数量')
+ok(others.courses.every((c) => c.TeachName === '已隐藏' && c.ClassRoom === '已隐藏'), '@他人时教师与教室被替换')
+ok(others.courses.every((c) => c.CourseName !== '已隐藏'), '@他人时课程名保留')
+ok(others.hideInfo === true, '脱敏标记传给模板')
+
+await call('weekDay', '#课表3')
+ok(RENDERS[RENDERS.length - 1].data.hideInfo === true, '单天课表同样脱敏')
+ok(RENDERS[RENDERS.length - 1].data.courses.every((c) => c.TeachName === '已隐藏'), '单天课表教师已隐藏')
+
+/* 关闭配置后恢复显示 */
+Cfg._set('class.hideOthersInfo', false)
+await call('clz', '#课表')
+ok(RENDERS[RENDERS.length - 1].data.courses.every((c) => c.TeachName !== '已隐藏'), '关闭配置后 @他人也显示教师')
+ok(RENDERS[RENDERS.length - 1].data.hideInfo === undefined, '关闭配置后不带脱敏标记')
+e.at = null
 
 console.log('\n渲染次数:', RENDERS.length, '| 接口请求次数:', fetchCount)
 

@@ -12,19 +12,30 @@
       box-sizing: border-box;
     }
 
+    :root {
+      --ink: #20263a;
+      --ink-2: #4c5568;
+      --muted: #929aad;
+      --line: #e8ebf3;
+      --accent: #2f4a7d;
+      --ok-fg: #1e7a52; --ok-bg: #eaf6ef; --ok-line: #c6e4d3;
+      --bad-fg: #b23a34; --bad-bg: #fdeceb; --bad-line: #f2cdca;
+    }
+
     body {
       width: 1080px;
-      font-family: "Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", sans-serif;
-      background: #eef1f7;
       padding: 24px;
-      color: #2b3245;
+      background: #eaeef5;
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", sans-serif;
+      -webkit-font-smoothing: antialiased;
     }
 
     .board {
       background: #fff;
-      border-radius: 18px;
+      border-radius: 16px;
       overflow: hidden;
-      box-shadow: 0 10px 30px rgba(38, 50, 90, .12);
+      box-shadow: 0 14px 36px rgba(26, 36, 64, .10), 0 2px 6px rgba(26, 36, 64, .04);
     }
 
     /* 头部 */
@@ -32,31 +43,36 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 18px 26px;
-      background: linear-gradient(120deg, #4a6cf7, #7b5bf0 60%, #a45bf0);
+      gap: 16px;
+      padding: 18px 24px 16px;
+      background: #232b40;
+      border-bottom: 3px solid var(--accent);
       color: #fff;
     }
 
     .head .title {
-      font-size: 24px;
-      font-weight: 700;
-      letter-spacing: 2px;
+      font-size: 21px;
+      font-weight: 600;
+      letter-spacing: 3px;
     }
 
     .head .tips {
-      font-size: 13px;
-      opacity: .9;
+      font-size: 12.5px;
+      line-height: 1.6;
+      text-align: right;
+      letter-spacing: .3px;
+      color: rgba(255, 255, 255, .6);
     }
 
     /* 主体网格：第 1 列为节次，后 7 列为周日 ~ 周六 */
     .timetable {
       display: grid;
-      grid-template-columns: 78px repeat(7, 1fr);
-      grid-template-rows: 52px;
-      /* 行高以 76px 起，课程内容换行后按需长高，节次行随之对齐 */
-      grid-auto-rows: minmax(76px, auto);
-      gap: 6px;
-      padding: 14px;
+      grid-template-columns: 74px repeat(7, 1fr);
+      grid-template-rows: 44px;
+      /* 行高以 82px 起，课程内容换行后按需长高，节次行随之对齐 */
+      grid-auto-rows: minmax(82px, auto);
+      gap: 8px;
+      padding: 16px;
     }
 
     .corner,
@@ -65,36 +81,46 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 2px;
-      font-weight: 700;
-      font-size: 15px;
-      border-radius: 10px;
-      background: #f2f4fa;
-      color: #4a5578;
+      gap: 3px;
+      border-radius: 9px;
+      background: #f6f8fc;
+      color: var(--ink-2);
+      font-size: 13.5px;
+      font-weight: 600;
+      letter-spacing: .5px;
+    }
+
+    .corner {
+      background: transparent;
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: 1px;
     }
 
     .day .date {
       font-size: 11px;
       font-weight: 400;
-      color: #9aa2bb;
+      letter-spacing: 0;
+      color: var(--muted);
     }
 
     .day.weekend {
-      background: #fdf1f3;
-      color: #c2456a;
+      background: #f8f9fc;
+      color: var(--muted);
     }
 
     .day.weekend .date {
-      color: #d79aae;
+      color: #b3b9c7;
     }
 
     .day.today {
-      background: #4a6cf7;
+      background: var(--accent);
       color: #fff;
+      box-shadow: 0 6px 14px rgba(47, 74, 125, .28);
     }
 
     .day.today .date {
-      color: #d8e0ff;
+      color: rgba(255, 255, 255, .72);
     }
 
     .period {
@@ -104,84 +130,105 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 3px;
-      border-radius: 10px;
-      background: #f7f8fc;
+      gap: 4px;
+      border-radius: 9px;
+      border: 1px solid #f1f3f8;
+      background: #f9fbfe;
     }
 
     .period .no {
-      font-size: 15px;
-      font-weight: 700;
-      color: #59637f;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--ink-2);
     }
 
     .period .time {
       font-size: 10px;
-      line-height: 1.25;
+      line-height: 1.3;
       text-align: center;
-      color: #9aa2bb;
+      letter-spacing: .2px;
+      color: var(--muted);
     }
 
-    /* 课程卡片 */
+    /* 课程卡片：正文统一墨色，颜色只留给左侧细条，避免满屏彩色 */
     .course {
       display: flex;
       flex-direction: column;
       justify-content: center;
-      gap: 4px;
-      padding: 8px 10px;
-      margin: 1px;
-      border-radius: 10px;
-      border-left: 4px solid var(--c);
+      gap: 3px;
+      padding: 9px 10px 9px 11px;
+      border-radius: 9px;
+      border: 1px solid var(--line);
+      border-left: 3px solid var(--c);
       background: var(--bg);
       overflow: hidden;
     }
 
     .course .name {
       font-size: 13.5px;
-      font-weight: 700;
-      line-height: 1.3;
-      color: var(--c);
+      font-weight: 600;
+      line-height: 1.35;
       /* 节课名过长时换行，不再截断 */
       word-break: break-word;
     }
 
     .course .meta {
       font-size: 11.5px;
-      line-height: 1.35;
-      color: #6b748c;
+      line-height: 1.4;
+      color: var(--ink-2);
       word-break: break-word;
     }
 
-    /* 到勤标签（ClassLxBz），用暖色与课程配色区分开 */
+    /* 节次时间比教师/教室再弱一级 */
+    .course .meta.dim {
+      color: var(--muted);
+    }
+
+    /* 到勤标签（ClassLxBz）：正常=绿，未到=红，其余中性灰，空值不渲染 */
     .course .tag {
       align-self: flex-start;
-      font-size: 10px;
-      padding: 1px 6px;
+      margin-top: 2px;
+      padding: 0 7px;
       border-radius: 20px;
-      background: #fff4e8;
-      color: #b3560f;
-      border: 1px solid #f0c9a0;
-      opacity: .95;
+      border: 1px solid #e8eaf1;
+      background: #f3f4f8;
+      color: var(--muted);
+      font-size: 10px;
+      line-height: 1.7;
+      letter-spacing: .5px;
+    }
+
+    .course.st-ok .tag {
+      border-color: var(--ok-line);
+      background: var(--ok-bg);
+      color: var(--ok-fg);
+    }
+
+    .course.st-bad .tag {
+      border-color: var(--bad-line);
+      background: var(--bad-bg);
+      color: var(--bad-fg);
     }
 
     .empty {
       grid-column: 2 / -1;
       grid-row: 2;
-      padding: 60px 0;
+      padding: 64px 0;
       text-align: center;
-      color: #9aa2bb;
-      font-size: 16px;
+      color: var(--muted);
+      font-size: 15px;
+      letter-spacing: 1px;
     }
 
-    /* 8 套配色 */
-    .c0 { --c: #4a6cf7; --bg: #eef2ff; }
-    .c1 { --c: #17a673; --bg: #e9f8f2; }
-    .c2 { --c: #e07a1f; --bg: #fdf3e7; }
-    .c3 { --c: #c2456a; --bg: #fdeef2; }
-    .c4 { --c: #7b5bf0; --bg: #f1ecfe; }
-    .c5 { --c: #0f9bb8; --bg: #e8f7fa; }
-    .c6 { --c: #8a7d1f; --bg: #faf7e3; }
-    .c7 { --c: #5b6b8c; --bg: #eef1f7; }
+    /* 8 套低饱和配色：--c 只作左侧色条，--bg 为近乎白的浅底 */
+    .c0 { --c: #5b6f9c; --bg: #f8fafc; }
+    .c1 { --c: #4f8378; --bg: #f7fbfa; }
+    .c2 { --c: #9a7a4f; --bg: #fcfaf6; }
+    .c3 { --c: #8f6070; --bg: #fdf9fa; }
+    .c4 { --c: #6f6a9c; --bg: #f9f9fc; }
+    .c5 { --c: #4e7c8c; --bg: #f7fafb; }
+    .c6 { --c: #7d7f4f; --bg: #fbfbf6; }
+    .c7 { --c: #6b7280; --bg: #f9fafb; }
   </style>
 </head>
 
@@ -190,7 +237,7 @@
     <div class="head">
       <div class="title">课程表</div>
       <div class="tips">
-        {{if updateTime}}更新于 {{updateTime}} · {{/if}}共 {{total}} 门课
+        {{if updateTime}}更新于 {{updateTime}} · {{/if}}共 {{total}} 门课{{if hideInfo}} · 教师与教室已隐藏{{/if}}
       </div>
     </div>
 
@@ -215,11 +262,11 @@
       {{/if}}
 
       {{each courses item}}
-      <div class="course c{{item.Color}}"
+      <div class="course c{{item.Color}} {{item.Tag === '正常' ? 'st-ok' : (item.Tag === '未到' ? 'st-bad' : '')}}"
         style="grid-column: {{item.Col}}; grid-row: {{item.RowStart}} / {{item.RowEnd}};">
         <span class="name">{{item.CourseName}}</span>
         <span class="meta">{{item.TeachName}} · {{item.ClassRoom}}</span>
-        <span class="meta">{{item.TimeText}}</span>
+        <span class="meta dim">{{item.TimeText}}</span>
         {{if item.Tag}}
         <span class="tag">{{item.Tag}}</span>
         {{/if}}
