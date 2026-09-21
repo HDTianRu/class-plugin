@@ -13,29 +13,34 @@
     }
 
     :root {
-      --ink: #20263a;
-      --ink-2: #4c5568;
-      --muted: #929aad;
-      --line: #e8ebf3;
-      --accent: #2f4a7d;
-      --ok-fg: #1e7a52; --ok-bg: #eaf6ef; --ok-line: #c6e4d3;
-      --bad-fg: #b23a34; --bad-bg: #fdeceb; --bad-line: #f2cdca;
+      /* 与 index.html 同一个主色，深浅靠明度变化拉开 */
+      --accent: #3d5af1;
+      --accent-soft: #eef2ff;
+
+      --ink: #1b2233;
+      --ink-2: #555e78;
+      --muted: #98a1b8;
+      --line: #eaedf7;
+
+      --ok-fg: #0f7a55; --ok-bg: #e8f7f0; --ok-line: #c2e7d6;
+      --bad-fg: #c93a33; --bad-bg: #fdecea; --bad-line: #f6cecb;
     }
 
     body {
       width: 720px;
       padding: 24px;
-      background: #eaeef5;
+      background: linear-gradient(160deg, #f1f4fc, #e8ecf7);
       color: var(--ink);
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", sans-serif;
+      font-variant-numeric: tabular-nums;
       -webkit-font-smoothing: antialiased;
     }
 
     .board {
       background: #fff;
-      border-radius: 16px;
+      border-radius: 18px;
       overflow: hidden;
-      box-shadow: 0 14px 36px rgba(26, 36, 64, .10), 0 2px 6px rgba(26, 36, 64, .04);
+      box-shadow: 0 1px 2px rgba(27, 34, 51, .04), 0 18px 40px -12px rgba(27, 34, 51, .18);
     }
 
     .head {
@@ -43,62 +48,74 @@
       align-items: center;
       justify-content: space-between;
       gap: 16px;
-      padding: 18px 24px 16px;
-      background: #232b40;
-      border-bottom: 3px solid var(--accent);
+      padding: 20px 26px;
       color: #fff;
+      background-image:
+        radial-gradient(120% 150% at 100% 0%, rgba(255, 255, 255, .20), rgba(255, 255, 255, 0) 58%),
+        linear-gradient(135deg, #4a67f5, #3548cc 65%, #2f3fb8);
     }
 
     .head .title {
       font-size: 20px;
       font-weight: 600;
-      letter-spacing: 3px;
+      letter-spacing: 4px;
+    }
+
+    .head .title::before {
+      content: '';
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      margin-right: 11px;
+      border-radius: 3px;
+      background: #b3c2ff;
+      vertical-align: 3px;
     }
 
     .head .tips {
       font-size: 12.5px;
       line-height: 1.6;
       text-align: right;
-      letter-spacing: .3px;
-      color: rgba(255, 255, 255, .6);
+      letter-spacing: .4px;
+      color: rgba(255, 255, 255, .74);
     }
 
     .list {
       display: flex;
       flex-direction: column;
       gap: 10px;
-      padding: 16px;
+      padding: 18px;
     }
 
-    /* 与整周课表同一观感：正文墨色 + 左侧细色条 */
+    /* 与整周课表同一观感：墨色正文 + 左侧主色细条 */
     .item {
       display: flex;
       align-items: center;
       gap: 14px;
-      padding: 10px 12px 10px 13px;
-      border-radius: 9px;
+      padding: 11px 13px 11px 14px;
+      border-radius: 10px;
       border: 1px solid var(--line);
-      border-left: 3px solid var(--c);
-      background: var(--bg);
+      border-left: 3px solid var(--accent);
+      background: #fbfcff;
+      box-shadow: 0 1px 2px rgba(27, 34, 51, .03);
     }
 
-    /* 节次块 */
+    /* 节次块：主色淡底，与课程卡片区分开 */
     .item .periods {
-      flex: 0 0 76px;
+      flex: 0 0 78px;
       display: flex;
       flex-direction: column;
       align-items: center;
       gap: 3px;
       padding: 7px 0;
-      border-radius: 8px;
-      border: 1px solid #f1f3f8;
-      background: #f9fbfe;
+      border-radius: 9px;
+      background: var(--accent-soft);
     }
 
     .item .periods .no {
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--ink-2);
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--accent);
     }
 
     .item .periods .time {
@@ -106,7 +123,7 @@
       line-height: 1.3;
       text-align: center;
       letter-spacing: .2px;
-      color: var(--muted);
+      color: #8e99bd;
     }
 
     .item .content {
@@ -135,13 +152,13 @@
     /* 到勤标签（ClassLxBz）：正常=绿，未到=红，其余中性灰，空值不渲染 */
     .item .tag {
       flex: 0 0 auto;
-      padding: 1px 10px;
-      border-radius: 20px;
-      border: 1px solid #e8eaf1;
-      background: #f3f4f8;
+      padding: 1px 11px;
+      border-radius: 999px;
+      border: 1px solid #e7eaf4;
+      background: #f4f6fb;
       color: var(--muted);
       font-size: 11px;
-      line-height: 1.7;
+      line-height: 1.8;
       letter-spacing: .5px;
       white-space: nowrap;
     }
@@ -159,22 +176,12 @@
     }
 
     .empty {
-      padding: 72px 0;
+      padding: 76px 0;
       text-align: center;
       color: var(--muted);
       font-size: 15px;
       letter-spacing: 1px;
     }
-
-    /* 与 index.html 保持同一套低饱和配色 */
-    .c0 { --c: #5b6f9c; --bg: #f8fafc; }
-    .c1 { --c: #4f8378; --bg: #f7fbfa; }
-    .c2 { --c: #9a7a4f; --bg: #fcfaf6; }
-    .c3 { --c: #8f6070; --bg: #fdf9fa; }
-    .c4 { --c: #6f6a9c; --bg: #f9f9fc; }
-    .c5 { --c: #4e7c8c; --bg: #f7fafb; }
-    .c6 { --c: #7d7f4f; --bg: #fbfbf6; }
-    .c7 { --c: #6b7280; --bg: #f9fafb; }
   </style>
 </head>
 
@@ -194,7 +201,7 @@
       {{/if}}
 
       {{each courses item}}
-      <div class="item c{{item.Color}} {{item.Tag === '正常' ? 'st-ok' : (item.Tag === '未到' ? 'st-bad' : '')}}">
+      <div class="item {{item.Tag === '正常' ? 'st-ok' : (item.Tag === '未到' ? 'st-bad' : '')}}">
         <div class="periods">
           <span class="no">{{item.ClassStart}}{{if item.ClassEnd > item.ClassStart}}-{{item.ClassEnd}}{{/if}}</span>
           <span class="time">{{item.Time}}</span>
