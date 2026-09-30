@@ -149,13 +149,7 @@
       word-break: break-word;
     }
 
-    /* 今日打卡时间：比教师/教室再弱一级 */
-    .item .checkin {
-      color: var(--accent);
-      font-size: 12px;
-    }
-
-    /* 到勤标签（ClassLxBz）：正常=绿，未到=红，其余中性灰，空值不渲染 */
+    /* 到勤标签（ClassLxBz / 今日打卡时间）：正常=绿，未到=红，其余中性灰，空值不渲染 */
     .item .tag {
       flex: 0 0 auto;
       padding: 1px 11px;
@@ -207,7 +201,7 @@
       {{/if}}
 
       {{each courses item}}
-      <div class="item {{item.Tag === '正常' ? 'st-ok' : (item.Tag === '未到' ? 'st-bad' : '')}}">
+      <div class="item {{item.TagClass}}">
         <div class="periods">
           <span class="no">{{item.ClassStart}}{{if item.ClassEnd > item.ClassStart}}-{{item.ClassEnd}}{{/if}}</span>
           <span class="time">{{item.Time}}</span>
@@ -215,7 +209,6 @@
         <div class="content">
           <span class="name">{{item.CourseName}}</span>
           <span class="meta">{{item.TeachName}} · {{item.ClassRoom}}</span>
-          {{if item.CheckinText}}<span class="meta checkin">打卡 {{item.CheckinText}}</span>{{/if}}
         </div>
         {{if item.Tag}}
         <span class="tag">{{item.Tag}}</span>

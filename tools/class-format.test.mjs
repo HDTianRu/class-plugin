@@ -86,10 +86,22 @@ let parsed = Class.formatCheckin([
   { ClassSj: '09:50:32', ClassRoom: 'A座421' },
   { ClassSj: '', ClassRoom: 'A座421' },
   { ClassSj: '7:05:00', ClassRoom: 'A座421' },
+  { ClassSj: '08:00', ClassRoom: 'A座421' },
   { ClassState: false, ClassSj: '09:00:00', ClassRoom: 'A座421' }
 ])
-ok(parsed.length === 2, 'formatCheckin 过滤非法时间与无效记录')
-ok(parsed[0].text === '09:50' && parsed[0].minutes === 590, 'formatCheckin 取 HH:MM 并算出分钟数')
-ok(parsed[1].text === '07:05', 'formatCheckin 补零到 HH:MM')
+ok(parsed.length === 3, 'formatCheckin 过滤非法时间与无效记录')
+ok(parsed[0].text === '09:50:32' && parsed[0].minutes === 590, 'formatCheckin 展示精确到秒，分钟数用于比较')
+ok(parsed[1].text === '07:05:00', 'formatCheckin 补零到 HH:MM:SS')
+ok(parsed[2].text === '08:00:00', 'formatCheckin 缺秒时补 :00')
+
+/* tagClass：打卡时间与「已到」同为绿色，未到/缺勤为红，其余中性灰 */
+ok(Class.tagClass('正常') === 'st-ok', '正常 -> 绿')
+ok(Class.tagClass('已到') === 'st-ok', '已到 -> 绿')
+ok(Class.tagClass('09:50:32') === 'st-ok', '打卡时间（带秒）-> 绿')
+ok(Class.tagClass('9:05') === 'st-ok', '打卡时间（HH:MM）-> 绿')
+ok(Class.tagClass('未到') === 'st-bad', '未到 -> 红')
+ok(Class.tagClass('缺勤') === 'st-bad', '缺勤 -> 红')
+ok(Class.tagClass('调课') === '', '调课 -> 中性灰')
+ok(Class.tagClass('') === '' && Class.tagClass(undefined) === '', '空标签不着色')
 
 process.exit(process.exitCode || 0)

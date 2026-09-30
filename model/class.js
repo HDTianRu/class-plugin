@@ -193,18 +193,20 @@ class Class {
   }
 
   /*
-  * 打卡记录转成 { minutes, text } 列表
-  * ClassSj 形如 07:50:32，展示取 HH:MM，比较用当天的分钟数
+  * 打卡记录转成 { minutes, text, Room } 列表
+  * ClassSj 形如 09:46:46，展示保留到秒，比较用当天的分钟数
   * */
   formatCheckin(records) {
     return (Array.isArray(records) ? records : []).map((item) => {
       if (item?.ClassState === false) return null
       let match = /^(\d{1,2}):(\d{2})(?::(\d{2}))?$/.exec(String(item?.ClassSj || '').trim())
       if (!match) return null
-      let minutes = Number(match[1]) * 60 + Number(match[2])
+      let hh = match[1].padStart(2, '0')
+      let mm = match[2]
+      let ss = match[3] || '00'
       return {
-        minutes,
-        text: `${match[1].padStart(2, '0')}:${match[2]}`,
+        minutes: Number(hh) * 60 + Number(mm),
+        text: `${hh}:${mm}:${ss}`,
         Room: String(item?.ClassRoom || '').trim()
       }
     }).filter(Boolean)
@@ -242,13 +244,14 @@ class Class {
   }
 
   /*
-  * 给「今天」的课程挂上打卡时间，其他日期原样返回
-  * 打卡接口失败/超时时返回原数据，保留 weekRank 的到勤标签
+  * 给「今天」的课程改写 Tag，其他日期原样返回
+  * 今天：有打卡时间则用打卡时间当 Tag（与「已到」同样式），没查到则记为「未到」
   * */
   async attachCheckin(schedule, { date, today } = {}) {
     if (!schedule?.courses || today !== true || !date) return schedule
 
     let records = await this.requestCheckin(schedule.id, date)
+    /* 接口失败/超时：原样返回，仍用 weekRank 的到勤标签 */
     if (!records) return schedule
 
     let parsed = this.formatCheckin(records)
@@ -256,9 +259,9 @@ class Class {
     let courses = schedule.courses.map((item) => {
       if (item.Week !== week) return item
       let hit = this.matchCheckin(item, parsed)
-      if (!hit) return item
-      /* 拿到真实打卡时间后不再显示 weekRank 的到勤标签 */
-      return { ...item, CheckinText: hit.text, Tag: '' }
+      /* 有打卡记录就用打卡时间当标签（已到绿），没记录记为未到（红） */
+      let tag = hit ? hit.text : '未到'
+      return { ...item, Tag: tag, TagClass: this.tagClass(tag) }
     })
 
     return { ...schedule, courses }
@@ -313,6 +316,8 @@ class Class {
         DayName: this.dayName(week),
         /* ClassLxBz 描述这节课的到勤情况，空值才不显示标签 */
         Tag: this.getTag(item.ClassLxBz),
+        /* 标签配色，今天被打卡时间改写后由 attachCheckin 重算 */
+        TagClass: this.tagClass(this.getTag(item.ClassLxBz)),
         Color: color,
         /* 表格定位：第 1 列为节次，故星期 +1；第 1 行为表头，故节次 +1 */
         Col: week + 1,
@@ -374,6 +379,18 @@ class Class {
   getTag(bz) {
     if (!bz) return ''
     return String(bz).trim()
+  }
+
+  /*
+  * 标签配色：正常/已到/打卡时间 -> 绿，未到/缺勤 -> 红，其余（调课等）中性灰
+  * 今日标签是打卡时间（HH:MM 或 HH:MM:SS），照样走绿色
+  * */
+  tagClass(tag) {
+    let text = String(tag || '').trim()
+    if (!text) return ''
+    if (text === '正常' || text === '已到' || /^\d{1,2}:\d{2}(:\d{2})?$/.test(text)) return 'st-ok'
+    if (text === '未到' || text === '缺勤') return 'st-bad'
+    return ''
   }
 
   /* 表头：有 Week 数据时带上日期，并标记周末与今天 */

@@ -73,7 +73,7 @@ const CHECKIN = {
   Code: '600',
   Msg: '成功',
   Data: [
-    { ClassState: null, ClassSj: '09:50:00', ClassLx: 'IC卡', ClassRoom: 'A座421', ClassRq: '2026-09-23' },
+    { ClassState: null, ClassSj: '09:50:37', ClassLx: 'IC卡', ClassRoom: 'A座421', ClassRq: '2026-09-23' },
     { ClassState: null, ClassSj: '13:30:00', ClassLx: 'IC卡', ClassRoom: 'C座307', ClassRq: '2026-09-23' },
     { ClassState: null, ClassSj: '12:30:00', ClassLx: 'IC卡', ClassRoom: 'D座205', ClassRq: '2026-09-23' }
   ]
@@ -84,6 +84,11 @@ SAMPLE_WEEK.Data.Week[3].Rq = realWednesday()
 SAMPLE_WEEK.Data.Rank.push({
   CourseName: '大学物理B（二）', TeachName: '周良玉', ClassLxBz: '未到',
   Class: 3, ClassEnd: 4, ClassRoom: 'A座421', Rq: realWednesday()
+})
+/* 同一时段另一间教室没有打卡流水：今日应记为「未到」，与 weekRank 的「正常」无关 */
+SAMPLE_WEEK.Data.Rank.push({
+  CourseName: '大学英语', TeachName: '李明', ClassLxBz: '正常',
+  Class: 3, ClassEnd: 4, ClassRoom: 'E座101', Rq: realWednesday()
 })
 
 const isCheckin = (url) => String(url).includes('/atd/records')
@@ -184,22 +189,28 @@ console.log(`   今日 = ${todayData.dayName}，${todayData.total} 节课`)
 ok(!/\{\{|\}\}/.test(lastHtml()), '单天模板无未解析占位符')
 ok(todayData.courses.every((c) => c.Week === classApi.todayWeek(scheduleOfWeek)), '今日课程按真实星期过滤')
 ok(checkinCount === checkinBefore + 1, '今日课表请求一次打卡接口')
-let hit = todayData.courses.find((c) => c.CheckinText)
-ok(!!hit, '今天的课程挂上打卡时间')
-ok(hit.CheckinText === '09:50', '打卡时间取 ClassSj 的 HH:MM')
-ok(hit.Tag === '', '有打卡时间时不再显示 weekRank 的到勤标签')
+let hit = todayData.courses.find((c) => /^\d{1,2}:\d{2}:\d{2}$/.test(c.Tag))
+ok(!!hit, '今天的课程用打卡时间当标签')
+ok(hit.Tag === '09:50:37', '打卡时间精确到秒')
+ok(hit.TagClass === 'st-ok', '打卡时间与「已到」同样式（绿）')
+ok(todayData.courses.every((c) => c.CheckinText === undefined), '不再单独渲染打卡行')
+let miss = todayData.courses.find((c) => c.ClassRoom === 'E座101')
+ok(miss?.Tag === '未到' && miss.TagClass === 'st-bad', '今天没有打卡记录的课记为未到（红）')
+ok(todayData.courses.every((c) => c.TagClass === 'st-ok' || c.TagClass === 'st-bad'), '今日标签全部按打卡结果着色')
+ok(lastHtml().includes('class="item st-ok"'), '打卡命中的卡片渲染成绿色（与已到同款）')
+ok(lastHtml().includes('class="item st-bad"'), '未打卡的卡片渲染成红色')
 
 /* 非今天：不请求打卡接口，到勤标签照旧 */
 checkinBefore = checkinCount
 await call('tomorrow', '#明日课表')
 ok(RENDERS[RENDERS.length - 1].data.title === '明日课表', '明日课表标题')
 ok(checkinCount === checkinBefore, '明日课表不请求打卡接口')
-ok(RENDERS[RENDERS.length - 1].data.courses.every((c) => !c.CheckinText), '明日课程不带打卡时间')
+ok(RENDERS[RENDERS.length - 1].data.courses.every((c) => !/^\d{1,2}:\d{2}:\d{2}$/.test(c.Tag)), '明日课程标签保持 weekRank')
 
 await call('weekDay', '#课表周二')
 ok(checkinCount === checkinBefore, '指定非今天不请求打卡接口')
 ok(RENDERS[RENDERS.length - 1].data.courses.some((c) => c.Tag === '未到'), '非今天仍显示 weekRank 到勤标签')
-ok(RENDERS[RENDERS.length - 1].data.courses.every((c) => !c.CheckinText), '非今天不带打卡时间')
+ok(RENDERS[RENDERS.length - 1].data.courses.every((c) => !/^\d{1,2}:\d{2}:\d{2}$/.test(c.Tag)), '非今天不带打卡时间')
 
 /* 打卡接口失败：退回 weekRank 标签，渲染不受影响 */
 let okFetch = globalThis.fetch
@@ -210,7 +221,7 @@ globalThis.fetch = async (url) => {
 }
 await call('today', '#今日课表')
 let fallback = RENDERS[RENDERS.length - 1].data
-ok(fallback.courses.every((c) => !c.CheckinText), '打卡接口失败时不带打卡时间')
+ok(fallback.courses.every((c) => !/^\d{1,2}:\d{2}:\d{2}$/.test(c.Tag)), '打卡接口失败时不显示打卡时间')
 ok(fallback.courses.some((c) => c.Tag === '未到'), '打卡接口失败时保留 weekRank 到勤标签')
 globalThis.fetch = okFetch
 
@@ -222,7 +233,7 @@ globalThis.fetch = async (url) => {
   return { json: async () => SAMPLE }
 }
 await call('today', '#今日课表')
-ok(RENDERS[RENDERS.length - 1].data.courses.every((c) => !c.CheckinText), '打卡接口返回异常时退回原标签')
+ok(RENDERS[RENDERS.length - 1].data.courses.every((c) => !/^\d{1,2}:\d{2}:\d{2}$/.test(c.Tag)), '打卡接口返回异常时退回原标签')
 globalThis.fetch = okFetch2
 
 console.log('\n=== 8. 节流 ===')

@@ -204,7 +204,7 @@
       color: var(--muted);
     }
 
-    /* 到勤标签（ClassLxBz）：正常=绿，未到=红，其余中性灰，空值不渲染 */
+    /* 到勤标签（ClassLxBz / 今日打卡时间）：正常=绿，未到=红，其余中性灰，空值不渲染 */
     .course .tag {
       align-self: flex-start;
       margin-top: 2px;
@@ -272,12 +272,11 @@
       {{/if}}
 
       {{each courses item}}
-      <div class="course {{item.Tag === '正常' ? 'st-ok' : (item.Tag === '未到' ? 'st-bad' : '')}}"
+      <div class="course {{item.TagClass}}"
         style="grid-column: {{item.Col}}; grid-row: {{item.RowStart}} / {{item.RowEnd}};">
         <span class="name">{{item.CourseName}}</span>
         <span class="meta">{{item.TeachName}} · {{item.ClassRoom}}</span>
         <span class="meta dim">{{item.TimeText}}</span>
-        {{if item.CheckinText}}<span class="meta dim">打卡 {{item.CheckinText}}</span>{{/if}}
         {{if item.Tag}}
         <span class="tag">{{item.Tag}}</span>
         {{/if}}
