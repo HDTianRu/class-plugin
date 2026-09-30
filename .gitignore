@@ -5,3 +5,6 @@ data/class/*
 !data/cfg_default.json
 data/cfg.json
 node_modules
+.node_modules
+/pnpm-lock.yaml
+/api-example

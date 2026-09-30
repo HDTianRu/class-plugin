@@ -82,6 +82,11 @@ export const helpList = [{
       desc: '查看单天课程'
     },
     {
+      icon: 71,
+      title: '#签到',
+      desc: '引用含签到二维码的图片发送，自动识码签到'
+    },
+    {
       icon: 87,
       title: 'Tips',
       desc: '主人可用 #绑定课表 学号 @某人 代绑'

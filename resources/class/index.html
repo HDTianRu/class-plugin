@@ -277,6 +277,7 @@
         <span class="name">{{item.CourseName}}</span>
         <span class="meta">{{item.TeachName}} · {{item.ClassRoom}}</span>
         <span class="meta dim">{{item.TimeText}}</span>
+        {{if item.CheckinText}}<span class="meta dim">打卡 {{item.CheckinText}}</span>{{/if}}
         {{if item.Tag}}
         <span class="tag">{{item.Tag}}</span>
         {{/if}}

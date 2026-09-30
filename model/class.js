@@ -8,14 +8,19 @@ const TIMES = ['08:00', '08:55', '10:00', '10:55', '14:00', '14:55',
 const DAYS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
 /* 单节课时长（分钟），第 end 节的结束时间 = 第 end 节上课时间 + 该值 */
 const CLASS_MINUTES = 45
-/* 接口原始数据的 redis 缓存时长（秒），默认 30 分钟 */
-const RAW_CACHE_TIME = 30 * 60
 /* 最少显示节数 */
 const MIN_PERIOD = 10
 /* 课程配色数量，与 resources/class/index.html 中的 .c0 ~ .c7 对应 */
 const COLORS = 8
 /* 接口地址 */
 const API_URL = 'https://wedsk12.weds.com.cn:8081/atd/weekRank'
+/* 打卡流水接口地址 */
+const CHECKIN_API_URL = 'https://wedsk12.weds.com.cn:8081/atd/records'
+/* 打卡时间落在 [上课前 CHECKIN_BEFORE 分钟, 上课后 CHECKIN_AFTER 分钟] 内才算这节课的打卡 */
+const CHECKIN_BEFORE = 60
+const CHECKIN_AFTER = 5
+/* 打卡接口超时（毫秒），超时则退回 weekRank 的到勤标签 */
+const CHECKIN_TIMEOUT = 10 * 1000
 
 class Class {
   constructor() {
@@ -60,7 +65,7 @@ class Class {
 
   /*
   * 取接口原始数据（Data 部分），用 redis 缓存，避免频繁打教务接口
-  * 缓存 30 分钟，force 为 true 时跳过读取
+  * 缓存到当天结束，force 为 true 时跳过读取
   * */
   async getRaw(id, force = false) {
     let cacheKey = `class-plugin:raw:${id}`
@@ -81,10 +86,12 @@ class Class {
     return raw
   }
 
-  /* 接口缓存时长（秒），默认 30 分钟 */
+  /* 接口缓存时长（秒）：到当天 0 点为止，过零点作废重查 */
   rawCacheTime() {
-    let time = Number(Cfg.get('class.rawCacheTime', RAW_CACHE_TIME))
-    return time > 0 ? time : RAW_CACHE_TIME
+    let now = new Date()
+    let end = new Date(now)
+    end.setHours(24, 0, 0, 0)
+    return Math.max(1, Math.floor((end - now) / 1000))
   }
 
   /* 请求接口，返回 Data 部分 */
@@ -123,6 +130,138 @@ class Class {
       return null
     }
     return ret.Data
+  }
+
+  /* ---------- 打卡时间 ---------- */
+
+  /* 当天日期，接口 filterDate 需要的 YYYY-MM-DD */
+  todayStr() {
+    let d = new Date()
+    let p = (n) => String(n).padStart(2, '0')
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
+  }
+
+  /*
+  * 请求打卡流水接口，返回 Data 数组
+  * 每次查询都真实请求、不缓存；超时或失败返回 null（调用方退回课表接口的到勤标签）
+  * */
+  async requestCheckin(id, date) {
+    let token = Cfg.get('class.token', '')
+    if (!token) return null
+
+    let controller = new AbortController()
+    let timer = setTimeout(() => controller.abort(), this.checkinTimeout())
+
+    let options = {
+      method: 'POST',
+      headers: {
+        'Host': 'wedsk12.weds.com.cn:8081',
+        'content-type': 'application/json;charset=utf-8',
+        'authorization': `Token ${token}`,
+        'charset': 'utf-8',
+      },
+      signal: controller.signal,
+      body: JSON.stringify({
+        "orgaId": String(Cfg.get('class.orgaId', '10001')),
+        "filterDate": date,
+        "userSerial": String(id)
+      })
+    }
+
+    let ret = null
+    try {
+      let res = await fetch(CHECKIN_API_URL, options)
+      ret = await res.json()
+    } catch (e) {
+      logger.warn(`[class-plugin] 打卡接口请求失败，改用课表接口到勤标签: ${e.message}`)
+      return null
+    } finally {
+      clearTimeout(timer)
+    }
+
+    if (String(ret?.Code) !== '600' || !Array.isArray(ret?.Data)) {
+      logger.warn(`[class-plugin] 打卡接口返回异常: ${ret?.Msg || ret?.Code || '无响应'}`)
+      return null
+    }
+    return ret.Data
+  }
+
+  /* 打卡接口超时（毫秒） */
+  checkinTimeout() {
+    let time = Number(Cfg.get('class.checkinTimeout', CHECKIN_TIMEOUT))
+    return time > 0 ? time : CHECKIN_TIMEOUT
+  }
+
+  /*
+  * 打卡记录转成 { minutes, text } 列表
+  * ClassSj 形如 07:50:32，展示取 HH:MM，比较用当天的分钟数
+  * */
+  formatCheckin(records) {
+    return (Array.isArray(records) ? records : []).map((item) => {
+      if (item?.ClassState === false) return null
+      let match = /^(\d{1,2}):(\d{2})(?::(\d{2}))?$/.exec(String(item?.ClassSj || '').trim())
+      if (!match) return null
+      let minutes = Number(match[1]) * 60 + Number(match[2])
+      return {
+        minutes,
+        text: `${match[1].padStart(2, '0')}:${match[2]}`,
+        Room: String(item?.ClassRoom || '').trim()
+      }
+    }).filter(Boolean)
+  }
+
+  /*
+  * 给一节课找打卡记录：教室相同，且打卡时间落在
+  * [上课前 checkinBefore 分钟, 上课后 checkinAfter 分钟] 内，多条时取最接近上课时间的一条
+  * */
+  matchCheckin(course, records) {
+    let room = String(course?.ClassRoom || '').trim()
+    if (!room || room === '待定') return null
+
+    let startMin = this.toMinutes(course?.TimeStart || TIMES[(course?.ClassStart || 1) - 1] || '')
+    if (startMin < 0) return null
+
+    let before = Number(Cfg.get('class.checkinBefore', CHECKIN_BEFORE))
+    let after = Number(Cfg.get('class.checkinAfter', CHECKIN_AFTER))
+    if (!(before >= 0)) before = CHECKIN_BEFORE
+    if (!(after >= 0)) after = CHECKIN_AFTER
+
+    let hit = null
+    let best = Infinity
+    for (let rec of records) {
+      if (rec.Room !== room) continue
+      let gap = rec.minutes - startMin
+      if (gap < -before || gap > after) continue
+      let dist = Math.abs(gap)
+      if (dist < best) {
+        best = dist
+        hit = rec
+      }
+    }
+    return hit
+  }
+
+  /*
+  * 给「今天」的课程挂上打卡时间，其他日期原样返回
+  * 打卡接口失败/超时时返回原数据，保留 weekRank 的到勤标签
+  * */
+  async attachCheckin(schedule, { date, today } = {}) {
+    if (!schedule?.courses || today !== true || !date) return schedule
+
+    let records = await this.requestCheckin(schedule.id, date)
+    if (!records) return schedule
+
+    let parsed = this.formatCheckin(records)
+    let week = this.todayWeek(schedule)
+    let courses = schedule.courses.map((item) => {
+      if (item.Week !== week) return item
+      let hit = this.matchCheckin(item, parsed)
+      if (!hit) return item
+      /* 拿到真实打卡时间后不再显示 weekRank 的到勤标签 */
+      return { ...item, CheckinText: hit.text, Tag: '' }
+    })
+
+    return { ...schedule, courses }
   }
 
   /*
@@ -242,14 +381,17 @@ class Class {
     let dateMap = {}
     if (Array.isArray(week)) {
       week.forEach((item, idx) => {
-        if (item?.Rq) dateMap[idx + 1] = item.Rq.slice(5)
+        if (item?.Rq) dateMap[idx + 1] = item.Rq
       })
     }
     return DAYS.map((name, idx) => {
       let weekNo = idx + 1
+      let rq = dateMap[weekNo] || ''
       return {
         name,
-        date: dateMap[weekNo] || '',
+        /* 完整日期，查当天打卡时作 filterDate */
+        Rq: rq,
+        date: rq ? rq.slice(5) : '',
         Weekend: weekNo === 1 || weekNo === 7,
         Today: weekNo === today
       }

@@ -149,6 +149,12 @@
       word-break: break-word;
     }
 
+    /* 今日打卡时间：比教师/教室再弱一级 */
+    .item .checkin {
+      color: var(--accent);
+      font-size: 12px;
+    }
+
     /* 到勤标签（ClassLxBz）：正常=绿，未到=红，其余中性灰，空值不渲染 */
     .item .tag {
       flex: 0 0 auto;
@@ -209,6 +215,7 @@
         <div class="content">
           <span class="name">{{item.CourseName}}</span>
           <span class="meta">{{item.TeachName}} · {{item.ClassRoom}}</span>
+          {{if item.CheckinText}}<span class="meta checkin">打卡 {{item.CheckinText}}</span>{{/if}}
         </div>
         {{if item.Tag}}
         <span class="tag">{{item.Tag}}</span>

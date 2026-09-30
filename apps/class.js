@@ -18,7 +18,7 @@ export default class Class extends plugin {
       priority: 100,
       rule: [{
         /* 整周课表：#课表 / #clz / #课表强制 */
-        reg: '^#?(clazz|class|clz|cls|课表|课程表)(强制|刷新|更新)?$',
+        reg: '^#?(clazz|class|clz|cls|课表|课程表)((强制)|刷新)?$',
         fnc: 'clz'
       }, {
         /* 指定星期：#课表3 / #课表周三 / #class7 / #clz日 */
@@ -58,6 +58,9 @@ export default class Class extends plugin {
     let schedule = await this.getSchedule(e, force)
     if (!schedule) return false
 
+    /* 整周图只有「今天」那一列挂打卡时间 */
+    schedule = await this.withCheckin(schedule, classApi.todayWeek(schedule))
+
     return render('class/index', schedule, {
       e, scale: this.getScale()
     })
@@ -70,6 +73,8 @@ export default class Class extends plugin {
 
     let schedule = await this.getSchedule(e)
     if (!schedule) return false
+
+    schedule = await this.withCheckin(schedule, week)
 
     let data = classApi.dayData(schedule, week, `${classApi.dayName(week)}课表`)
     return render('class/day', data, {
@@ -107,10 +112,24 @@ export default class Class extends plugin {
 
     let week = type === 'tomorrow' ? classApi.tomorrowWeek(schedule) : classApi.todayWeek(schedule)
     let title = type === 'tomorrow' ? '明日课表' : '今日课表'
+    schedule = await this.withCheckin(schedule, week)
     let data = classApi.dayData(schedule, week, title)
 
     return render('class/day', data, {
       e, scale: this.getScale()
+    })
+  }
+
+  /*
+  * 给课表挂上打卡时间：只有「今天」那一列会请求打卡接口并替换到勤标签，
+  * 其他日期原样返回，打卡接口失败/超时时也原样返回
+  * */
+  async withCheckin(schedule, week) {
+    if (!schedule) return schedule
+    let day = schedule.days?.[week - 1] || {}
+    return classApi.attachCheckin(schedule, {
+      date: day.Rq || classApi.todayStr(),
+      today: !!day.Today
     })
   }
 
@@ -137,6 +156,7 @@ export default class Class extends plugin {
     if (!schedule) {
       return e.reply('但课表查询失败，请确认学号是否正确，或联系主人检查 Token 配置')
     }
+    schedule = await this.withCheckin(schedule, classApi.todayWeek(schedule))
     return render('class/index', schedule, {
       e, scale: this.getScale()
     })

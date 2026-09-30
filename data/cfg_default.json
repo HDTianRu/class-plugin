@@ -2,7 +2,7 @@
   "class": {
     "token": "",
     "orgaId": "10001",
-    "rawCacheTime": 1800,
+    "checkinTimeout": 10000,
     "hideOthersInfo": true,
     "maxPeriod": 0,
     "scale": 1.3,

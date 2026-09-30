@@ -3,12 +3,13 @@
  * 用法：node tools/class-format.test.mjs
  * */
 import fs from 'node:fs'
-import Class from '../model/class.js'
 
 globalThis.logger = {
   info: console.log, warn: console.log, error: console.log, mark: console.log,
   red: (s) => s, green: (s) => s, yellow: (s) => s, blue: (s) => s, gray: (s) => s
 }
+
+const Class = (await import('../model/class.js')).default
 
 const raw = JSON.parse(fs.readFileSync(new URL('./sample-data.json', import.meta.url), 'utf8'))
 let ret = Class.format(raw.Data, '20240001')
@@ -43,7 +44,7 @@ ok(ret.days.filter((d) => d.Today).length === 1, '仅一天标记为今天')
 /* 单天数据 */
 let day = Class.dayData(ret, 1, '今日课表')
 ok(day.total === 1 && day.dayName === '周日', '周日单天课表')
-ok(day.courses[0].Time === '20:30~21:25', '11-12 节时间文本 = 第 11 节上课 ~ 第 12 节下课')
+ok(day.courses[0].Time === '20:30~22:10', '11-12 节时间文本 = 第 11 节上课 ~ 第 12 节下课')
 ok(Class.timeRange(3, 4).End === '11:40', '3-4 节结束时间 = 第 4 节上课 10:55 + 45 分钟')
 ok(Class.timeRange(13, 14).Start === '', '超出作息表返回空串')
 ok(Class.tomorrowWeek(ret) === Class.todayWeek(ret) % 7 + 1, '明日星期递增')
@@ -55,5 +56,40 @@ function RET_WEEK_OK() {
     Class.getWeek({ Week: 5, Rq: '2026-09-20' }, {}) === 5
 }
 
-/* Cfg.js 里的 fs.watch 会保持事件循环，测试结束主动退出 */
+/* ---------- matchCheckin / formatCheckin 纯函数用例 ---------- */
+
+let rec = (sj, room = 'A座421') => ({ minutes: Class.toMinutes(sj.slice(0, 5)), text: sj.slice(0, 5), Room: room })
+let course = { ClassRoom: 'A座421', TimeStart: '10:00' }
+
+/* 窗口边界：上课前 60 分整命中、61 分不命中；上课后 5 分整命中、6 分不命中 */
+ok(Class.matchCheckin(course, [rec('09:00:00')])?.text === '09:00', '上课前 60 分整命中')
+ok(Class.matchCheckin(course, [rec('08:59:00')]) === null, '上课前 61 分不命中')
+ok(Class.matchCheckin(course, [rec('10:05:00')])?.text === '10:05', '上课后 5 分整命中')
+ok(Class.matchCheckin(course, [rec('10:06:00')]) === null, '上课后 6 分不命中')
+ok(Class.matchCheckin(course, [rec('10:00:00')])?.text === '10:00', '上课整点命中')
+
+/* 教室必须相同；空 / 待定不匹配 */
+ok(Class.matchCheckin(course, [rec('09:50:00', 'B座502')]) === null, '教室不符不命中')
+ok(Class.matchCheckin({ ClassRoom: '', TimeStart: '10:00' }, [rec('09:50:00')]) === null, '教室为空不命中')
+ok(Class.matchCheckin({ ClassRoom: '待定', TimeStart: '10:00' }, [rec('09:50:00')]) === null, '教室待定不命中')
+ok(Class.matchCheckin({ ClassRoom: ' A座421 ', TimeStart: '10:00' }, [rec('09:50:00')])?.text === '09:50', '教室两侧空格不影响匹配')
+
+/* 同教室多条取最接近上课时间的一条 */
+ok(Class.matchCheckin(course, [rec('09:05:00'), rec('09:58:00'), rec('09:40:00')])?.text === '09:58', '多条取最接近上课时间的一条')
+
+/* 缺少 TimeStart 时按 ClassStart 查作息表（第 3 节 10:00） */
+ok(Class.matchCheckin({ ClassRoom: 'A座421', ClassStart: 3 }, [rec('09:50:00')])?.text === '09:50', '缺 TimeStart 时按 ClassStart 推算')
+ok(Class.matchCheckin({ ClassRoom: 'A座421', ClassStart: 3 }, [rec('08:00:00')]) === null, '按 ClassStart 推算后窗口外不命中')
+
+/* formatCheckin：过滤非法时间，展示取 HH:MM，过滤 ClassState === false */
+let parsed = Class.formatCheckin([
+  { ClassSj: '09:50:32', ClassRoom: 'A座421' },
+  { ClassSj: '', ClassRoom: 'A座421' },
+  { ClassSj: '7:05:00', ClassRoom: 'A座421' },
+  { ClassState: false, ClassSj: '09:00:00', ClassRoom: 'A座421' }
+])
+ok(parsed.length === 2, 'formatCheckin 过滤非法时间与无效记录')
+ok(parsed[0].text === '09:50' && parsed[0].minutes === 590, 'formatCheckin 取 HH:MM 并算出分钟数')
+ok(parsed[1].text === '07:05', 'formatCheckin 补零到 HH:MM')
+
 process.exit(process.exitCode || 0)

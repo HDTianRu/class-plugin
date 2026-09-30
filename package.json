@@ -1,0 +1,11 @@
+{
+  "name": "class-plugin",
+  "version": "1.0.0",
+  "description": "Yunzai 课表插件：课表查询与扫码签到",
+  "type": "module",
+  "private": true,
+  "main": "index.js",
+  "dependencies": {
+    "zxing-wasm": "^3.1.4"
+  }
+}
